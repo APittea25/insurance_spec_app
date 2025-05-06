@@ -23,7 +23,6 @@ def extract_functions(content):
     for line in content:
         line = line.strip()
 
-        # Detect function name (lowercase, no spaces, no colon)
         if line and not line.endswith(":") and not line.startswith("-") and " " not in line and line.islower():
             if current:
                 functions.append(current)
@@ -58,7 +57,7 @@ def extract_functions(content):
 
     return functions
 
-# Generate Python code using OpenAI GPT
+# ✅ GPT code generation — fixed f-string syntax
 def generate_code_from_spec(spec):
     prompt = f"""
 Write a Python function based on the following actuarial specification:
@@ -70,4 +69,34 @@ Inputs:
 Output: {spec.get('Output', '')}
 Logic:
 {chr(10).join(spec.get('Logic', []))}
-Validation: {
+Validation: {spec.get('Validation', '')}
+
+Return only the Python code (with function definition and docstring).
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+
+    return response.choices[0].message.content
+
+# ----------------------------
+# Streamlit App UI
+# ----------------------------
+st.set_page_config(page_title="Insurance Spec Code Generator", layout="wide")
+st.title("🧮 Actuarial Spec to Python Code Generator")
+
+uploaded_file = st.file_uploader("Upload a Word document (.docx)", type="docx")
+
+if uploaded_file:
+    st.success("✅ Document uploaded.")
+    content = parse_docx(uploaded_file)
+    specs = extract_functions(content)
+
+    if not specs:
+        st.warning("⚠️ No function specs detected. Please check the document format.")
+    else:
+        for i, spec in enumerate(specs):
+            with st.expander(f"🔧 {spec.get('Function', f'Function {i
